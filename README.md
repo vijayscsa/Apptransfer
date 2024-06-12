@@ -1,1 +1,1 @@
-Only temporary transfer of files
+regular Only temporary transfer of files
