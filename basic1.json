@@ -1,0 +1,110 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "k8s-dashboard",
+    "title": "Kubernetes Cluster Monitoring",
+    "tags": ["kubernetes"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "5m",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "CPU Usage",
+        "id": 1,
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_usage_seconds_total{cluster=\"$cluster\",container!=\"\",container!=\"POD\"}[5m])) by (container)",
+            "legendFormat": "{{container}}",
+            "refId": "A"
+          }
+        ],
+        "xaxis": {
+          "mode": "time",
+          "name": null,
+          "position": "bottom",
+          "show": true
+        },
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "CPU Usage",
+            "logBase": 1,
+            "min": "0",
+            "show": true
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Memory Usage",
+        "id": 2,
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(container_memory_usage_bytes{cluster=\"$cluster\",container!=\"\",container!=\"POD\"}) by (container)",
+            "legendFormat": "{{container}}",
+            "refId": "B"
+          }
+        ],
+        "xaxis": {
+          "mode": "time",
+          "name": null,
+          "position": "bottom",
+          "show": true
+        },
+        "yaxes": [
+          {
+            "format": "bytes",
+            "label": "Memory Usage",
+            "logBase": 1,
+            "min": "0",
+            "show": true
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "legend": {
+          "show": true
+        }
+      },
+      {
+        "type": "table",
+        "title": "Pod Status",
+        "id": 3,
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "kube_pod_status_phase",
+            "format": "table",
+            "refId": "C"
+          }
+        ],
+        "columns": [
+          {
+            "text": "Pod",
+            "value": "pod"
+          },
+          {
+            "text": "Namespace",
+            "value": "namespace"
+          },
+          {
+            "text": "Status",
+            "value": "status"
+          }
+        ],
+        "paging": true
+      }
+    ],
+    "links": []
+  },
+  "overwrite": false
+}
