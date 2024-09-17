@@ -1,0 +1,31 @@
+---
+- name: Check Web Service Connectivity
+  hosts: localhost
+  gather_facts: no
+  vars:
+    web_service_url: "http://example.com"  # Replace with your web service URL
+    timeout_seconds: 10
+
+  tasks:
+    - name: Check if web service is reachable
+      uri:
+        url: "{{ web_service_url }}"
+        method: GET
+        return_content: no
+        validate_certs: yes
+        timeout: "{{ timeout_seconds }}"
+      register: web_service_check
+      ignore_errors: yes
+
+    - name: Display web service status
+      debug:
+        msg: "Web service at {{ web_service_url }} is {{ 'UP' if web_service_check.status == 200 else 'DOWN' }}"
+
+    - name: Set fact for web service status
+      set_fact:
+        web_service_status: "{{ 'UP' if web_service_check.status == 200 else 'DOWN' }}"
+
+    - name: Fail if web service is down
+      fail:
+        msg: "Web service at {{ web_service_url }} is not responding properly."
+      when: web_service_status == "DOWN"
