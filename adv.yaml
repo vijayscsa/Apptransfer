@@ -1,0 +1,55 @@
+---
+- name: Check Multiple Web Services Status
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    web_services:
+      - name: "Service 1"
+        url: "https://service1.example.com/status"
+        username: "user1"
+        password: "pass1"
+      - name: "Service 2"
+        url: "https://service2.example.com/health"
+        username: "user2"
+        password: "pass2"
+      - name: "Service 3"
+        url: "https://service3.example.com/api/status"
+        username: "user3"
+        password: "pass3"
+      - name: "Service 4"
+        url: "https://service4.example.com/check"
+        username: "user4"
+        password: "pass4"
+      - name: "Service 5"
+        url: "https://service5.example.com/heartbeat"
+        username: "user5"
+        password: "pass5"
+    expected_status_code: 200
+
+  tasks:
+    - name: Check web services
+      uri:
+        url: "{{ item.url }}"
+        method: GET
+        user: "{{ item.username }}"
+        password: "{{ item.password }}"
+        force_basic_auth: yes
+        status_code: "{{ expected_status_code }}"
+        validate_certs: no
+      register: results
+      loop: "{{ web_services }}"
+      ignore_errors: yes
+
+    - name: Display service statuses
+      debug:
+        msg: "{{ item.item.name }} is {{ 'UP' if item.status == expected_status_code else 'DOWN' }} (Status code: {{ item.status | default('N/A') }})"
+      loop: "{{ results.results }}"
+
+    - name: Summary of services
+      debug:
+        msg: 
+          - "Total services checked: {{ web_services | length }}"
+          - "Services UP: {{ results.results | selectattr('status', 'defined') | selectattr('status', 'eq', expected_status_code) | list | length }}"
+          - "Services DOWN: {{ results.results | selectattr('status', 'undefined') | list | length + 
+                               results.results | selectattr('status', 'defined') | rejectattr('status', 'eq', expected_status_code) | list | length }}"
