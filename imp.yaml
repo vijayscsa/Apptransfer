@@ -1,0 +1,97 @@
+---
+- name: Validate Multiple Web Services
+  hosts: localhost
+  gather_facts: no
+  vars:
+    web_services:
+      - name: "Service 1"
+        url: "https://service1.example.com:8080/status"
+        port: 8080
+        auth_type: "basic"
+        username: "user1"
+        password: "pass1"
+        expected_status: 200
+      - name: "Service 2"
+        url: "https://service2.example.com:9090/health"
+        port: 9090
+        auth_type: "bearer"
+        token: "your_bearer_token"
+        expected_status: 200
+      - name: "Service 3"
+        url: "http://service3.example.com/api/v1/status"
+        port: 80
+        auth_type: "none"
+        expected_status: 200
+      - name: "Service 4"
+        url: "https://service4.example.com:8443/check"
+        port: 8443
+        auth_type: "digest"
+        username: "user4"
+        password: "pass4"
+        expected_status: 200
+      - name: "Service 5"
+        url: "https://service5.example.com:7000/healthz"
+        port: 7000
+        auth_type: "api_key"
+        api_key: "your_api_key"
+        api_key_name: "X-API-Key"
+        expected_status: 200
+    timeout: 10
+
+  tasks:
+    - name: Check web services status
+      uri:
+        url: "{{ item.url }}"
+        method: GET
+        user: "{{ item.username | default(omit) }}"
+        password: "{{ item.password | default(omit) }}"
+        force_basic_auth: "{{ item.auth_type == 'basic' }}"
+        headers: "{{ 
+          (item.auth_type == 'bearer') | ternary({'Authorization': 'Bearer ' + item.token}, {}) |
+          combine((item.auth_type == 'api_key') | ternary({item.api_key_name: item.api_key}, {}))
+        }}"
+        status_code: "{{ item.expected_status }}"
+        validate_certs: no
+        timeout: "{{ timeout }}"
+      register: service_results
+      loop: "{{ web_services }}"
+      ignore_errors: yes
+
+    - name: Prepare service status report
+      set_fact:
+        service_status_report: "{{ service_status_report | default([]) + [
+          {
+            'name': item.item.name,
+            'url': item.item.url,
+            'port': item.item.port,
+            'status': item.status | default('ERROR'),
+            'response_time': (item.elapsed | default(0) * 1000) | round(2),
+            'is_up': item.status is defined and item.status == item.item.expected_status
+          }
+        ] }}"
+      loop: "{{ service_results.results }}"
+
+    - name: Display service status report
+      debug:
+        msg: |
+          Web Services Status Report:
+          {% for service in service_status_report %}
+          {{ service.name }}:
+            URL: {{ service.url }}
+            Port: {{ service.port }}
+            Status: {{ 'UP' if service.is_up else 'DOWN' }}
+            Response Code: {{ service.status }}
+            Response Time: {{ service.response_time }} ms
+          {% endfor %}
+
+    - name: Summary of service statuses
+      debug:
+        msg: |
+          Total services checked: {{ service_status_report | length }}
+          Services UP: {{ service_status_report | selectattr('is_up') | list | length }}
+          Services DOWN: {{ service_status_report | rejectattr('is_up') | list | length }}
+
+    - name: Fail if any service is down
+      fail:
+        msg: "One or more services are down. Please check the status report."
+      when: service_status_report | rejectattr('is_up') | list | length > 0
