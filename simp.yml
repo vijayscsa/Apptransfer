@@ -1,0 +1,32 @@
+---
+- name: Check Web Service Status
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    web_url: "https://example.com/api/status"
+    username: "your_username"
+    password: "your_password"
+    expected_status_code: 200
+
+  tasks:
+    - name: Check web service
+      uri:
+        url: "{{ web_url }}"
+        method: GET
+        user: "{{ username }}"
+        password: "{{ password }}"
+        force_basic_auth: yes
+        status_code: "{{ expected_status_code }}"
+        validate_certs: no
+      register: result
+      ignore_errors: yes
+
+    - name: Display service status
+      debug:
+        msg: "Web service is {{ 'UP' if result.status == expected_status_code else 'DOWN' }}"
+
+    - name: Show detailed status
+      debug:
+        msg: "Status code: {{ result.status | default('N/A') }}"
+      when: result.status is defined
