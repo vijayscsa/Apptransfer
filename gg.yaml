@@ -1,0 +1,42 @@
+---
+- name: Check Web Service Status
+  hosts: localhost
+  gather_facts: no
+  vars:
+    web_service_url: "https://example.com/api/status"
+    username: "your_username"
+    password: "your_password"
+    expected_status_code: 200
+    timeout: 10
+
+  tasks:
+    - name: Check web service status with basic auth
+      uri:
+        url: "{{ web_service_url }}"
+        method: GET
+        user: "{{ username }}"
+        password: "{{ password }}"
+        force_basic_auth: yes
+        status_code: "{{ expected_status_code }}"
+        validate_certs: yes
+        timeout: "{{ timeout }}"
+      register: web_service_result
+      ignore_errors: yes
+
+    - name: Display web service status
+      debug:
+        msg: "Web service is UP and responding correctly"
+      when: web_service_result.status == expected_status_code
+
+    - name: Display error if web service is down
+      debug:
+        msg: "Web service is DOWN or not responding as expected. Status code: {{ web_service_result.status | default('N/A') }}"
+      when: web_service_result.status is undefined or web_service_result.status != expected_status_code
+
+    - name: Set fact for service status
+      set_fact:
+        service_is_up: "{{ web_service_result.status is defined and web_service_result.status == expected_status_code }}"
+
+    - name: Final status message
+      debug:
+        msg: "Web service status check completed. Service is {{ 'UP' if service_is_up else 'DOWN' }}."
