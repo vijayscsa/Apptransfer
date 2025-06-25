@@ -1,0 +1,145 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": null,
+    "title": "AB Reporter Status Dashboard",
+    "description": "Dashboard to display raw ab-reporter status output",
+    "tags": ["kubernetes", "ab-reporter", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 0,
+    "hideControls": false,
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "collapse": false,
+      "enable": true,
+      "notice": false,
+      "now": true,
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "status": "Stable",
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ],
+      "type": "timepicker"
+    },
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "links": [],
+    "panels": [
+      {
+        "datasource": null,
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 2,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "content": "# AB Reporter Status Dashboard\n\nThis dashboard displays the raw output from the `ab-reporter status` command running in the Kubernetes pod.",
+          "mode": "markdown"
+        },
+        "pluginVersion": "8.0.0",
+        "title": "Dashboard Information",
+        "type": "text"
+      },
+      {
+        "datasource": null,
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 2
+        },
+        "id": 2,
+        "options": {
+          "content": "```bash\n# Last Updated: $(date)\n# Command: kubectl exec -it ol-murex-commit-dev2-0 -n ol-ab-nonp -- ab-reporter status\n\n# AB Reporter Status Output:\n# ========================\n\n# To display real-time data, you need to set up a data collection mechanism.\n# This can be done using:\n# 1. Prometheus with custom exporter\n# 2. InfluxDB with custom script\n# 3. Elasticsearch with log shipping\n# 4. Custom API endpoint\n\n# Sample output placeholder:\n# Status: Running\n# Uptime: 2 hours 30 minutes\n# Last Report: 2024-06-25 10:30:00\n# Active Connections: 45\n# Queue Size: 12\n# Error Count: 0\n```\n\n**Note:** To display live data from your kubectl command, you'll need to:\n\n1. **Set up a data collection script** that runs the kubectl command periodically\n2. **Configure a data source** (like Prometheus, InfluxDB, or a simple HTTP endpoint)\n3. **Update this panel** to query from that data source\n\n**Quick Setup Options:**\n\n**Option 1: Using a simple HTTP endpoint**\n```bash\n# Create a simple web server that serves the command output\nwhile true; do\n  kubectl exec -it ol-murex-commit-dev2-0 -n ol-ab-nonp -- ab-reporter status > /tmp/ab-status.txt\n  sleep 30\ndone\n```\n\n**Option 2: Using Prometheus Pushgateway**\n```bash\n# Push metrics to Prometheus\nSTATUS=$(kubectl exec -it ol-murex-commit-dev2-0 -n ol-ab-nonp -- ab-reporter status)\necho $STATUS | curl --data-binary @- http://pushgateway:9091/metrics/job/ab-reporter\n```\n\n**To make this panel dynamic:**\n1. Replace this static content with a query to your chosen data source\n2. Change the panel type to match your data format\n3. Configure appropriate refresh intervals",
+          "mode": "markdown"
+        },
+        "pluginVersion": "8.0.0",
+        "title": "AB Reporter Raw Status Output",
+        "type": "text"
+      },
+      {
+        "datasource": null,
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 0,
+          "y": 14
+        },
+        "id": 3,
+        "options": {
+          "content": "## Connection Information\n\n**Pod Name:** ol-murex-commit-dev2-0  \n**Namespace:** ol-ab-nonp  \n**Command:** ab-reporter status  \n\n**Last Check:** Manual refresh required  \n**Status:** Monitoring setup required  ",
+          "mode": "markdown"
+        },
+        "pluginVersion": "8.0.0",
+        "title": "Pod Information",
+        "type": "text"
+      },
+      {
+        "datasource": null,
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 12,
+          "y": 14
+        },
+        "id": 4,
+        "options": {
+          "content": "## Manual Commands\n\nTo get the latest status manually:\n\n```bash\nkubectl exec -it ol-murex-commit-dev2-0 -n ol-ab-nonp -- ab-reporter status\n```\n\n```bash\n# Get pod logs\nkubectl logs ol-murex-commit-dev2-0 -n ol-ab-nonp\n```\n\n```bash\n# Check pod status\nkubectl get pod ol-murex-commit-dev2-0 -n ol-ab-nonp\n```",
+          "mode": "markdown"
+        },
+        "pluginVersion": "8.0.0",
+        "title": "Manual Commands",
+        "type": "text"
+      }
+    ]
+  }
+}
