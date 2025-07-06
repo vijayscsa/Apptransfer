@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+        
+        .schedule-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #8B4513, #A0522D);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 5px;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th {
+            background: #8B4513;
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .category-badge {
+            background: #8B4513;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .activity-text {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .description-text {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .cluster-container {
+            margin-top: 8px;
+        }
+        
+        .cluster-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .date-container {
+            background: #fff3cd;
+            border: 1px solid #8B4513;
+            padding: 10px 15px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #8B4513;
+            font-size: 13px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .footer {
+            padding: 15px;
+            background: #f8f9fa;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .stats {
+                flex-direction: column;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+            
+            .header h2 {
+                font-size: 20px;
+            }
+        }
+        
+        /* Grafana-specific adjustments */
+        .grafana-panel {
+            height: 100%;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="schedule-container grafana-panel">
+        <div class="header">
+            <h2>📅 AMI Patching Schedule</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number">2</span>
+                    <span class="stat-label">Total Activities</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">6</span>
+                    <span class="stat-label">Clusters</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">15</span>
+                    <span class="stat-label">Days Ahead</span>
+                </div>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>📋 CATEGORY</th>
+                    <th>⚙️ ACTIVITY</th>
+                    <th>📄 DESCRIPTION</th>
+                    <th>📅 DATE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="status-dot"></div>
+                        <div class="category-badge">🖥️ AMI Patching</div>
+                    </td>
+                    <td>
+                        <div class="activity-text">July 2025 AMI Patching for EKS Cluster nodes</div>
+                    </td>
+                    <td>
+                        <div class="description-text">
+                            <strong>PCCS update of July 2025 AMI patching on NonProd & Pre Prod Clusters</strong>
+                        </div>
+                        <div class="cluster-container">
+                            <span class="cluster-tag">📦 glmp02</span>
+                            <span class="cluster-tag">📦 glms02</span>
+                            <span class="cluster-tag">📦 rfn02</span>
+                            <span class="cluster-tag">📦 rfs02</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="date-container">
+                            🕙 08th July 2025<br>10:00 AM
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="status-dot"></div>
+                        <div class="category-badge">🖥️ AMI Patching</div>
+                    </td>
+                    <td>
+                        <div class="activity-text">July 2025 AMI Patching for EKS Cluster nodes</div>
+                    </td>
+                    <td>
+                        <div class="description-text">
+                            <strong>PCCS update of July 2025 AMI patching on Prod Clusters</strong>
+                        </div>
+                        <div class="cluster-container">
+                            <span class="cluster-tag">📦 glmp02</span>
+                            <span class="cluster-tag">📦 rfp02</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="date-container">
+                            🕙 15th July 2025<br>10:00 AM
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="footer">
+            ℹ️ Last updated: <span id="timestamp"></span> | Total Activities: 2
+        </div>
+    </div>
+    
+    <script>
+        // Simple timestamp update
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>
