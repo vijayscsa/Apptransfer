@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMI Patching Schedule Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            animation: slideInUp 0.8s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: white;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 200%;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            animation: rotate 20s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header-icon {
+            font-size: 40px;
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+            background: rgba(255,255,255,0.15);
+            padding: 15px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .controls {
+            padding: 25px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 45px 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #8B4513;
+            box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8B4513;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #8B4513;
+            background: white;
+            color: #8B4513;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .filter-btn:hover, .filter-btn.active {
+            background: #8B4513;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 69, 19, 0.3);
+        }
+        
+        .add-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        
+        th:first-child {
+            border-top-left-radius: 0;
+        }
+        
+        th:last-child {
+            border-top-right-radius: 0;
+        }
+        
+        td {
+            padding: 20px;
+            border-bottom: 1px solid #f1f3f4;
+            vertical-align: top;
+            transition: all 0.3s ease;
+        }
+        
+        tr {
+            transition: all 0.3s ease;
+        }
+        
+        tr:hover {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            transform: scale(1.002);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .category-cell {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+            border-left: 4px solid #8B4513;
+            position: relative;
+        }
+        
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #8B4513;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .activity-cell {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .description-cell {
+            line-height: 1.6;
+            max-width: 400px;
+        }
+        
+        .cluster-list {
+            list-style: none;
+            margin: 10px 0 0 0;
+            padding: 0;
+        }
+        
+        .cluster-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 10px;
+            margin: 2px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .date-cell {
+            white-space: nowrap;
+            font-weight: 600;
+            color: #8B4513;
+            position: relative;
+        }
+        
+        .date-badge {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 1px solid #8B4513;
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 13px;
+        }
+        
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        tr:hover .actions {
+            opacity: 1;
+        }
+        
+        .action-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-btn {
+            background: #007bff;
+            color: white;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .footer {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close:hover {
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-buttons {
+                justify-content: center;
+            }
+            
+            .header-stats {
+                justify-content: center;
+            }
+            
+            th, td {
+                padding: 15px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="header-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h1>AMI Patching Schedule</h1>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">2</span>
+                        <span class="stat-label">Total Activities</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">6</span>
+                        <span class="stat-label">Clusters</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">15</span>
+                        <span class="stat-label">Days Ahead</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search activities, clusters, or dates...">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="ami-patching">AMI Patching</button>
+                <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+            </div>
+            <button class="add-btn" onclick="openModal()">
+                <i class="fas fa-plus"></i>
+                Add Activity
+            </button>
+        </div>
+        
+        <div class="table-container">
+            <table id="scheduleTable">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-tag"></i> Category</th>
+                        <th><i class="fas fa-tasks"></i> Activity</th>
+                        <th><i class="fas fa-info-circle"></i> Description</th>
+                        <th><i class="fas fa-calendar"></i> Date</th>
+                        <th><i class="fas fa-cog"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr data-category="ami-patching">
+                        <td class="category-cell">
+                            <div class="category-badge">
+                                <i class="fas fa-server"></i>
+                                AMI Patching
+                            </div>
+                            <div class="status-indicator"></div>
+                        </td>
+                        <td class="activity-cell">July 2025 AMI Patching for EKS Cluster nodes</td>
+                        <td class="description-cell">
+                            <strong>PCCS update of July 2025 AMI patching on NonProd & Pre Prod Clusters</strong>
+                            <ul class="cluster-list">
+                                <li class="cluster-item"><i class="fas fa-cube"></i> glmp02</li>
+                                <li class="cluster-item"><i class="fas fa-cube"></i> glms02</li>
+                                <li class="cluster-item"><i class="fas fa-cube"></i> rfn02</li>
+                                <li class="cluster-item"><i class="fas fa-cube"></i> rfs02</li>
+                            </ul>
+                        </td>
+                        <td class="date-cell">
+                            <div class="date-badge">
+                                <i class="fas fa-clock"></i>
+                                08th July 2025 - 10 AM
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn edit-btn" onclick="editActivity(this)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn delete-btn" onclick="deleteActivity(this)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr data-category="ami-patching">
+                        <td class="category-cell">
+                            <div class="category-badge">
+                                <i class="fas fa-server"></i>
+                                AMI Patching
+                            </div>
+                            <div class="status-indicator"></div>
+                        </td>
+                        <td class="activity-cell">July 2025 AMI Patching for EKS Cluster nodes</td>
+                        <td class="description-cell">
+                            <strong>PCCS update of July 2025 AMI patching on Prod Clusters</strong>
+                            <ul class="cluster-list">
+                                <li class="cluster-item"><i class="fas fa-cube"></i> glmp02</li>
+                                <li class="cluster-item"><i class="fas fa-cube"></i> rfp02</li>
+                            </ul>
+                        </td>
+                        <td class="date-cell">
+                            <div class="date-badge">
+                                <i class="fas fa-clock"></i>
+                                15th July 2025 - 10 AM
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn edit-btn" onclick="editActivity(this)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn delete-btn" onclick="deleteActivity(this)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p><i class="fas fa-info-circle"></i> Last updated: <span id="lastUpdated"></span> | Total Activities: <span id="totalActivities">2</span></p>
+        </div>
+    </div>
+    
+    <!-- Modal for adding new activity -->
+    <div id="activityModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2><i class="fas fa-plus-circle"></i> Add New Activity</h2>
+            <form id="activityForm" style="margin-top: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Category:</label>
+                    <input type="text" id="category" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Activity:</label>
+                    <input type="text" id="activity" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Description:</label>
+                    <textarea id="description" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; height: 100px;"></textarea>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Date:</label>
+                    <input type="datetime-local" id="date" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                <button type="submit" style="background: #8B4513; color: white; padding: 12px 30px; border: none; border-radius: 25px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-save"></i> Save Activity
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLastUpdated();
+            initializeFilters();
+            initializeSearch();
+        });
+        
+        // Update last updated timestamp
+        function updateLastUpdated() {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = now.toLocaleString();
+        }
+        
+        // Initialize filter functionality
+        function initializeFilters() {
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const tableRows = document.querySelectorAll('#scheduleTable tbody tr');
+            
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    const filter = this.getAttribute('data-filter');
+                    
+                    tableRows.forEach(row => {
+                        if (filter === 'all') {
+                            row.style.display = '';
+                        } else if (filter === 'upcoming') {
+                            // Show all for demo - in real app, you'd filter by date
+                            row.style.display = '';
+                        } else {
+                            const category = row.getAttribute('data-category');
+                            row.style.display = category === filter ? '' : 'none';
+                        }
+                    });
+                    
+                    updateActivityCount();
+                });
+            });
+        }
+        
+        // Initialize search functionality
+        function initializeSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const tableRows = document.querySelectorAll('#scheduleTable tbody tr');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                tableRows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+                
+                updateActivityCount();
+            });
+        }
+        
+        // Update activity count
+        function updateActivityCount() {
+            const visibleRows = document.querySelectorAll('#scheduleTable tbody tr[style=""], #scheduleTable tbody tr:not([style*="none"])');
+            document.getElementById('totalActivities').textContent = visibleRows.length;
+        }
+        
+        // Modal functions
+        function openModal() {
+            document.getElementById('activityModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('activityModal').style.display = 'none';
+            document.getElementById('activityForm').reset();
+        }
+        
+        // Form submission
+        document.getElementById('activityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const category = document.getElementById('category').value;
+            const activity = document.getElementById('activity').value;
+            const description = document.getElementById('description').value;
+            const date = document.getElementById('date').value;
+            
+            if (category && activity && description && date) {
+                addNewActivity(category, activity, description, date);
+                closeModal();
+                updateLastUpdated();
+            } else {
+                alert('Please fill in all fields');
+            }
+        });
+        
+        // Add new activity to table
+        function addNewActivity(category, activity, description, date) {
+            const tbody = document.querySelector('#scheduleTable tbody');
+            const newRow = document.createElement('tr');
+            newRow.setAttribute('data-category', category.toLowerCase().replace(/\s+/g, '-'));
+            
+            const formattedDate = new Date(date).toLocaleString();
+            
+            newRow.innerHTML = `
+                <td class="category-cell">
+                    <div class="category-badge">
+                        <i class="fas fa-server"></i>
+                        ${category}
+                    </div>
+                    <div class="status-indicator"></div>
+                </td>
+                <td class="activity-cell">${activity}</td>
+                <td class="description-cell"><strong>${description}</strong></td>
+                <td class="date-cell">
+                    <div class="date-badge">
+                        <i class="fas fa-clock"></i>
+                        ${formattedDate}
+                    </div>
+                </td>
+                <td>
+                    <div class="actions">
+                        <button class="action-btn edit-btn" onclick="editActivity(this)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteActivity(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(newRow);
+            updateActivityCount();
+        }
+        
+        // Edit activity
+        function editActivity(btn) {
+            const row = btn.closest('tr');
+            const cells = row.querySelectorAll('td');
+            
+            // Get current values
+            const category = cells[0].querySelector('.category-badge').textContent.trim();
+            const activity = cells[1].textContent.trim();
+            const description = cells[2].querySelector('strong').textContent.trim();
+            
+            // Pre-fill modal with current values
+            document.getElementById('category').value = category;
+            document.getElementById('activity').value = activity;
+            document.getElementById('description').value = description;
+            
+            // Open modal
+            openModal();
+            
+            // Remove the current row (it will be re-added when form is submitted)
+            row.remove();
+            updateActivityCount();
+        }
+        
+        // Delete activity
+        function deleteActivity(btn) {
+            if (confirm('Are you sure you want to delete this activity?')) {
+                const row = btn.closest('tr');
+                row.style.animation = 'slideInUp 0.3s ease-out reverse';
+                setTimeout(() => {
+                    row.remove();
+                    updateActivityCount();
+                    updateLastUpdated();
+                }, 300);
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('activityModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+    </script>
+</body>
+</html>
