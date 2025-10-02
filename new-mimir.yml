@@ -1,0 +1,571 @@
+groups:
+  - name: rtf-ab-prod-pod-health
+    interval: 30s
+    rules:
+      # Alert when pods are not in Running state
+      - alert: PodNotRunning
+        expr: |
+          kube_pod_status_phase{namespace="rtf-ab-prod", phase!="Running"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} is not in Running state"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been in {{ $labels.phase }} state for more than 5 minutes."
+          runbook_url: "https://runbooks.example.com/pods-not-running"
+          dashboard: "https://grafana.example.com/d/pod-health"
+
+      # Alert on pods stuck in Pending state
+      - alert: PodStuckPending
+        expr: |
+          kube_pod_status_phase{namespace="rtf-ab-prod", phase="Pending"} == 1
+        for: 10m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} stuck in Pending state"
+          description: "Pod {{ $labels.pod }} in namespace rtf-ab-prod has been Pending for more than 10 minutes. Check for resource constraints or scheduling issues."
+          troubleshooting: "kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }}"
+
+      # Alert on pods in Failed state
+      - alert: PodFailed
+        expr: |
+          kube_pod_status_phase{namespace="rtf-ab-prod", phase="Failed"} == 1
+        for: 2m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          pagerduty: "true"
+        annotations:
+          summary: "Pod {{ $labels.pod }} has Failed"
+          description: "Pod {{ $labels.pod }} in namespace rtf-ab-prod is in Failed state."
+          troubleshooting: "kubectl logs {{ $labels.pod }} -n {{ $labels.namespace }} --previous"
+
+      # Alert on container restarts
+      - alert: PodContainerRestarting
+        expr: |
+          rate(kube_pod_container_status_restarts_total{namespace="rtf-ab-prod"}[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+        annotations:
+          summary: "Container {{ $labels.container }} in pod {{ $labels.pod }} is restarting"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: rtf-ab-prod) has restarted {{ $value }} times in the last 15 minutes."
+          troubleshooting: "kubectl logs {{ $labels.pod }} -c {{ $labels.container }} -n {{ $labels.namespace }}"
+
+      # Alert on high restart count
+      - alert: PodHighRestartCount
+        expr: |
+          kube_pod_container_status_restarts_total{namespace="rtf-ab-prod"} > 5
+        for: 5m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          pagerduty: "true"
+        annotations:
+          summary: "Pod {{ $labels.pod }} has high restart count"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} has restarted {{ $value }} times."
+
+      # Alert when containers are not ready
+      - alert: PodContainerNotReady
+        expr: |
+          kube_pod_container_status_ready{namespace="rtf-ab-prod"} == 0
+        for: 10m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+        annotations:
+          summary: "Container {{ $labels.container }} not ready"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: rtf-ab-prod) has been not ready for more than 10 minutes."
+
+      # Alert on CrashLoopBackOff
+      - alert: PodCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total{namespace="rtf-ab-prod"}[30m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          pagerduty: "true"
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is in CrashLoopBackOff state in namespace rtf-ab-prod."
+          troubleshooting: "kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }} && kubectl logs {{ $labels.pod }} -c {{ $labels.container }} -n {{ $labels.namespace }}"
+
+      # Alert on OOMKilled containers
+      - alert: PodOOMKilled
+        expr: |
+          kube_pod_container_status_last_terminated_reason{namespace="rtf-ab-prod", reason="OOMKilled"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          pagerduty: "true"
+        annotations:
+          summary: "Container {{ $labels.container }} was OOMKilled"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} was killed due to out of memory in namespace rtf-ab-prod."
+          action: "Increase memory limits or investigate memory leak"
+
+      # Alert when pod is terminating for too long
+      - alert: PodStuckTerminating
+        expr: |
+          kube_pod_deletion_timestamp{namespace="rtf-ab-prod"} * on(pod, namespace) kube_pod_status_phase{phase="Running"} > 0
+        for: 15m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} stuck in Terminating state"
+          description: "Pod {{ $labels.pod }} in namespace rtf-ab-prod has been terminating for more than 15 minutes."
+          troubleshooting: "kubectl delete pod {{ $labels.pod }} -n {{ $labels.namespace }} --force --grace-period=0"
+
+      # Alert on ImagePullBackOff
+      - alert: PodImagePullBackOff
+        expr: |
+          kube_pod_container_status_waiting_reason{namespace="rtf-ab-prod", reason="ImagePullBackOff"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+        annotations:
+          summary: "Container {{ $labels.container }} cannot pull image"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} cannot pull image in namespace rtf-ab-prod."
+          troubleshooting: "kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }} | grep -A 10 Events"
+
+      # Comprehensive abnormal state check
+      - alert: PodAbnormalState
+        expr: |
+          (
+            kube_pod_status_phase{namespace="rtf-ab-prod", phase=~"Failed|Unknown"} == 1
+            or
+            kube_pod_container_status_waiting_reason{namespace="rtf-ab-prod", reason=~"CrashLoopBackOff|ImagePullBackOff|ErrImagePull|CreateContainerConfigError|InvalidImageName"} == 1
+            or
+            kube_pod_container_status_terminated_reason{namespace="rtf-ab-prod", reason=~"OOMKilled|Error|ContainerCannotRun"} == 1
+          )
+        for: 3m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          pagerduty: "true"
+        annotations:
+          summary: "Pod {{ $labels.pod }} in abnormal state"
+          description: "Pod {{ $labels.pod }} in namespace rtf-ab-prod is in an abnormal state. Phase: {{ $labels.phase }}, Reason: {{ $labels.reason }}"
+          action_required: "Immediate investigation required"
+          troubleshooting: "kubectl describe pod {{ $labels.pod }} -n rtf-ab-prod && kubectl logs {{ $labels.pod }} -n rtf-ab-prod --all-containers=true"
+          
+          
+groups:
+  - name: rtf-ab-prod-performance
+    interval: 30s
+    rules:
+      # ============================================
+      # CONTAINER CPU ALERTS
+      # ============================================
+      
+      # Container CPU usage above 90%
+      - alert: ContainerCPUUsageHigh
+        expr: |
+          (
+            sum by (namespace, pod, container) (
+              rate(container_cpu_usage_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+            )
+            /
+            sum by (namespace, pod, container) (
+              kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="cpu"}
+            )
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+          pagerduty: "true"
+        annotations:
+          summary: "Container {{ $labels.container }} CPU usage above 90%"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: rtf-ab-prod) is using {{ $value | humanizePercentage }} of its CPU limit."
+          current_value: "{{ $value | humanizePercentage }}"
+          troubleshooting: "kubectl top pod {{ $labels.pod }} -n {{ $labels.namespace }} --containers"
+          action: "Consider increasing CPU limits or investigate performance bottleneck"
+          runbook_url: "https://runbooks.example.com/high-cpu-usage"
+
+      # Container CPU usage above 90% (without limits)
+      - alert: ContainerCPUUsageHighNoLimit
+        expr: |
+          (
+            sum by (namespace, pod, container) (
+              rate(container_cpu_usage_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+            )
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} CPU usage high (no limit set)"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using {{ $value }} CPU cores without limits set."
+          current_value: "{{ $value }} cores"
+          action: "Set CPU limits or investigate high CPU usage"
+
+      # Container CPU throttling
+      - alert: ContainerCPUThrottlingHigh
+        expr: |
+          (
+            rate(container_cpu_cfs_throttled_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+            /
+            rate(container_cpu_cfs_periods_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+          ) * 100 > 25
+        for: 10m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} experiencing CPU throttling"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: rtf-ab-prod) is being throttled {{ $value | humanizePercentage }} of the time."
+          current_value: "{{ $value | humanizePercentage }}"
+          action: "Consider increasing CPU limits"
+
+      # Pod CPU usage above 90%
+      - alert: PodCPUUsageHigh
+        expr: |
+          (
+            sum by (namespace, pod) (
+              rate(container_cpu_usage_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+            )
+            /
+            sum by (namespace, pod) (
+              kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="cpu"}
+            )
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+          pagerduty: "true"
+        annotations:
+          summary: "Pod {{ $labels.pod }} CPU usage above 90%"
+          description: "Pod {{ $labels.pod }} in namespace rtf-ab-prod is using {{ $value | humanizePercentage }} of its total CPU limit."
+          current_value: "{{ $value | humanizePercentage }}"
+          troubleshooting: "kubectl top pod {{ $labels.pod }} -n {{ $labels.namespace }} && kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }}"
+
+      # ============================================
+      # CONTAINER MEMORY ALERTS
+      # ============================================
+
+      # Container Memory usage above 90%
+      - alert: ContainerMemoryUsageHigh
+        expr: |
+          (
+            container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}
+            /
+            kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="memory"}
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+          pagerduty: "true"
+        annotations:
+          summary: "Container {{ $labels.container }} memory usage above 90%"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: rtf-ab-prod) is using {{ $value | humanizePercentage }} of its memory limit ({{ with query (printf \"kube_pod_container_resource_limits{namespace='rtf-ab-prod', pod='%s', container='%s', resource='memory'}\" $labels.pod $labels.container) }}{{ . | first | value | humanize1024 }}B{{ end }})."
+          current_value: "{{ $value | humanizePercentage }}"
+          current_usage: "{{ with query (printf \"container_memory_working_set_bytes{namespace='rtf-ab-prod', pod='%s', container='%s'}\" $labels.pod $labels.container) }}{{ . | first | value | humanize1024 }}B{{ end }}"
+          troubleshooting: "kubectl top pod {{ $labels.pod }} -n {{ $labels.namespace }} --containers"
+          action: "Consider increasing memory limits or investigate memory leak"
+          runbook_url: "https://runbooks.example.com/high-memory-usage"
+
+      # Container Memory usage above 90% (without limits)
+      - alert: ContainerMemoryUsageHighNoLimit
+        expr: |
+          container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}
+          > 1.5 * 1024 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} memory usage high (no limit set)"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using {{ $value | humanize1024 }}B without memory limits set."
+          current_value: "{{ $value | humanize1024 }}B"
+          action: "Set memory limits or investigate high memory usage"
+
+      # Pod Memory usage above 90%
+      - alert: PodMemoryUsageHigh
+        expr: |
+          (
+            sum by (namespace, pod) (
+              container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}
+            )
+            /
+            sum by (namespace, pod) (
+              kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="memory"}
+            )
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+          pagerduty: "true"
+        annotations:
+          summary: "Pod {{ $labels.pod }} memory usage above 90%"
+          description: "Pod {{ $labels.pod }} in namespace rtf-ab-prod is using {{ $value | humanizePercentage }} of its total memory limit."
+          current_value: "{{ $value | humanizePercentage }}"
+          troubleshooting: "kubectl top pod {{ $labels.pod }} -n {{ $labels.namespace }} && kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }}"
+
+      # ============================================
+      # ADVANCED PERFORMANCE ALERTS
+      # ============================================
+
+      # Container approaching memory limit (85% warning)
+      - alert: ContainerMemoryApproachingLimit
+        expr: |
+          (
+            container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}
+            /
+            kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="memory"}
+          ) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} memory usage above 85%"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its memory limit. May hit OOMKill soon."
+          current_value: "{{ $value | humanizePercentage }}"
+          action: "Monitor closely, consider increasing memory limits"
+
+      # Container approaching CPU limit (85% warning)
+      - alert: ContainerCPUApproachingLimit
+        expr: |
+          (
+            sum by (namespace, pod, container) (
+              rate(container_cpu_usage_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+            )
+            /
+            sum by (namespace, pod, container) (
+              kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="cpu"}
+            )
+          ) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} CPU usage above 85%"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its CPU limit."
+          current_value: "{{ $value | humanizePercentage }}"
+          action: "Monitor closely, consider increasing CPU limits"
+
+      # Memory usage increase rate
+      - alert: ContainerMemoryUsageIncreasing
+        expr: |
+          (
+            rate(container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}[30m])
+          ) > 0
+          and
+          (
+            predict_linear(container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}[1h], 4 * 3600)
+            /
+            kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="memory"}
+          ) > 1
+        for: 15m
+        labels:
+          severity: warning
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} memory usage increasing rapidly"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} memory usage is increasing and predicted to hit limit in 4 hours."
+          action: "Investigate potential memory leak"
+
+      # Combined CPU and Memory high usage
+      - alert: ContainerResourcesExhausted
+        expr: |
+          (
+            (
+              sum by (namespace, pod, container) (
+                rate(container_cpu_usage_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+              )
+              /
+              sum by (namespace, pod, container) (
+                kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="cpu"}
+              )
+            ) * 100 > 90
+          )
+          and
+          (
+            (
+              container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}
+              /
+              kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="memory"}
+            ) * 100 > 90
+          )
+        for: 5m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+          pagerduty: "true"
+        annotations:
+          summary: "Container {{ $labels.container }} CPU and Memory both above 90%"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace: rtf-ab-prod) is experiencing both high CPU and memory usage simultaneously."
+          action: "URGENT: Scale up resources or investigate performance issue immediately"
+          troubleshooting: "kubectl top pod {{ $labels.pod }} -n {{ $labels.namespace }} --containers && kubectl logs {{ $labels.pod }} -c {{ $labels.container }} -n {{ $labels.namespace }} --tail=100"
+
+      # ============================================
+      # NAMESPACE-LEVEL AGGREGATE ALERTS
+      # ============================================
+
+      # Namespace CPU usage above 90%
+      - alert: NamespaceCPUUsageHigh
+        expr: |
+          (
+            sum by (namespace) (
+              rate(container_cpu_usage_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+            )
+            /
+            sum by (namespace) (
+              kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="cpu"}
+            )
+          ) * 100 > 90
+        for: 10m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+          pagerduty: "true"
+        annotations:
+          summary: "Namespace rtf-ab-prod CPU usage above 90%"
+          description: "Namespace rtf-ab-prod is using {{ $value | humanizePercentage }} of total allocated CPU across all pods."
+          current_value: "{{ $value | humanizePercentage }}"
+          action: "Scale up applications or increase namespace resource quota"
+
+      # Namespace Memory usage above 90%
+      - alert: NamespaceMemoryUsageHigh
+        expr: |
+          (
+            sum by (namespace) (
+              container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}
+            )
+            /
+            sum by (namespace) (
+              kube_pod_container_resource_limits{namespace="rtf-ab-prod", resource="memory"}
+            )
+          ) * 100 > 90
+        for: 10m
+        labels:
+          severity: critical
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+          pagerduty: "true"
+        annotations:
+          summary: "Namespace rtf-ab-prod memory usage above 90%"
+          description: "Namespace rtf-ab-prod is using {{ $value | humanizePercentage }} of total allocated memory across all pods."
+          current_value: "{{ $value | humanizePercentage }}"
+          action: "Scale up applications or increase namespace resource quota"
+
+      # ============================================
+      # REQUEST VS LIMIT ALERTS
+      # ============================================
+
+      # Container using more than 90% of requests (may need limit adjustment)
+      - alert: ContainerCPURequestUtilizationHigh
+        expr: |
+          (
+            sum by (namespace, pod, container) (
+              rate(container_cpu_usage_seconds_total{namespace="rtf-ab-prod", container!="", container!="POD"}[5m])
+            )
+            /
+            sum by (namespace, pod, container) (
+              kube_pod_container_resource_requests{namespace="rtf-ab-prod", resource="cpu"}
+            )
+          ) * 100 > 90
+        for: 15m
+        labels:
+          severity: info
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} using 90% of CPU request"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is consistently using {{ $value | humanizePercentage }} of its CPU request. Consider adjusting requests/limits."
+          current_value: "{{ $value | humanizePercentage }}"
+
+      # Container using more than 90% of memory requests
+      - alert: ContainerMemoryRequestUtilizationHigh
+        expr: |
+          (
+            container_memory_working_set_bytes{namespace="rtf-ab-prod", container!="", container!="POD"}
+            /
+            kube_pod_container_resource_requests{namespace="rtf-ab-prod", resource="memory"}
+          ) * 100 > 90
+        for: 15m
+        labels:
+          severity: info
+          namespace: rtf-ab-prod
+          component: kubernetes
+          team: platform
+          alert_type: performance
+        annotations:
+          summary: "Container {{ $labels.container }} using 90% of memory request"
+          description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its memory request. Consider adjusting requests/limits."
+          current_value: "{{ $value | humanizePercentage }}"          
