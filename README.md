@@ -241,3 +241,18 @@ Annual Downtime Cost	₹1.2 Cr	<₹10 Lakh	>85% reduction
 OpsSentinel Agent converts traditional reactive IT operations into a proactive, self-healing ecosystem — improving reliability, cutting operational costs, and delivering measurable business resilience.
 
 
+
+
+
+
+<img width="1329" height="573" alt="image" src="https://github.com/user-attachments/assets/70bfd536-7c0d-4394-b986-97e63f6d3073" />
+
+
+
+<img width="884" height="350" alt="image" src="https://github.com/user-attachments/assets/486d15ae-d976-4ca6-985e-c184658e31c8" />
+
+
+
+<img width="1505" height="734" alt="image" src="https://github.com/user-attachments/assets/0695e108-cf90-4d52-8de3-71559c1f1cef" />
+
+
