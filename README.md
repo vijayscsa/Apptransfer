@@ -275,6 +275,13 @@ OpsSentinel Agent converts traditional reactive IT operations into a proactive, 
 
 
 
+<img width="535" height="122" alt="image" src="https://github.com/user-attachments/assets/658c2e3a-7662-4f4d-bc34-bc50fd4d978c" />
+
+<img width="958" height="793" alt="image" src="https://github.com/user-attachments/assets/85a1c594-7d2a-49e5-9b59-beed58f75f66" />
+
+
+
+
 
 
 
