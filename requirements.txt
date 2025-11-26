@@ -1,0 +1,5 @@
+streamlit
+websockets
+pyyaml
+requests
+python-dotenv
