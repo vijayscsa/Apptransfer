@@ -286,4 +286,43 @@ OpsSentinel Agent converts traditional reactive IT operations into a proactive, 
 
 
 
+   ravinv1@vijravinv:~/k8s/k8s-mcp-server$ cat Dockerfile
+FROM --platform=$BUILDPLATFORM golang:alpine AS builder
+RUN apk --no-cache upgrade && apk --no-cache add git ca-certificates
+WORKDIR /app
+COPY go.mod go.sum ./
+ENV GOTOOLCHAIN=auto
+RUN go mod download
+COPY . .
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -ldflags="-w -s" -o k8s-mcp-server main.go
+
+FROM golang:alpine AS final
+RUN apk --no-cache add ca-certificates && update-ca-certificates
+RUN apk --no-cache upgrade && apk --no-cache add git ca-certificates
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+COPY --from=builder /app/k8s-mcp-server /usr/local/bin/k8s-mcp-server
+RUN chmod +x /usr/local/bin/k8s-mcp-server
+
+USER appuser
+EXPOSE 8080
+ENV SERVER_MODE=sse
+ENV SERVER_PORT=8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+ENTRYPOINT ["/usr/local/bin/k8s-mcp-server"]
+
+
+
+
+
+
+
+
 
